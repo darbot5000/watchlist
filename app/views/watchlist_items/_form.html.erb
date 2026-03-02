@@ -1,0 +1,107 @@
+<%= form_with model: item, class: "space-y-6" do |f| %>
+  <% if item.errors.any? %>
+    <div class="bg-red-900/50 border border-red-700 rounded-xl p-4">
+      <p class="text-red-300 font-medium text-sm mb-2"><%= pluralize(item.errors.count, "error") %> prevented this from being saved:</p>
+      <ul class="list-disc list-inside text-red-400 text-sm space-y-1">
+        <% item.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- TMDB Search (only on new form) -->
+  <% if item.new_record? %>
+    <div data-controller="tmdb-search">
+      <label class="block text-sm font-medium text-gray-300 mb-2">Search TMDB</label>
+      <div class="relative">
+        <input type="text"
+               id="tmdb_search"
+               data-action="input->tmdb-search#search"
+               placeholder="Search for a movie or TV show..."
+               class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+        <div id="tmdb_results" class="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl hidden overflow-hidden"></div>
+      </div>
+      <p class="text-xs text-gray-500 mt-1">Search to auto-fill details, or fill in manually below.</p>
+    </div>
+
+    <div class="border-t border-gray-800"></div>
+  <% end %>
+
+  <!-- Streaming URL -->
+  <div>
+    <%= f.label :streaming_url, "Streaming URL", class: "block text-sm font-medium text-gray-300 mb-2" %>
+    <%= f.url_field :streaming_url,
+        placeholder: "https://www.netflix.com/title/...",
+        class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent",
+        id: "streaming_url_field",
+        data: { controller: "url-detect", action: "change->url-detect#detect paste->url-detect#detect" } %>
+    <p class="text-xs text-gray-500 mt-1">Paste a link and the service will be auto-detected.</p>
+  </div>
+
+  <!-- Title -->
+  <div>
+    <%= f.label :title, "Title", class: "block text-sm font-medium text-gray-300 mb-2" %>
+    <%= f.text_field :title,
+        placeholder: "The Dark Knight",
+        required: true,
+        id: "title_field",
+        class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" %>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <!-- Media Type -->
+    <div>
+      <%= f.label :media_type, "Type", class: "block text-sm font-medium text-gray-300 mb-2" %>
+      <%= f.select :media_type,
+          [["Movie", "movie"], ["TV Show", "tv"]],
+          {},
+          class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" %>
+    </div>
+
+    <!-- Status -->
+    <div>
+      <%= f.label :status, "Status", class: "block text-sm font-medium text-gray-300 mb-2" %>
+      <%= f.select :status,
+          [["Want to Watch", "want_to_watch"], ["Watched", "watched"]],
+          {},
+          class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" %>
+    </div>
+  </div>
+
+  <!-- Streaming Service -->
+  <div>
+    <%= f.label :streaming_service, "Streaming Service", class: "block text-sm font-medium text-gray-300 mb-2" %>
+    <%= f.text_field :streaming_service,
+        id: "streaming_service_field",
+        placeholder: "Netflix, Max, Disney+, ...",
+        class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" %>
+  </div>
+
+  <!-- Hidden TMDB fields -->
+  <%= f.hidden_field :tmdb_id, id: "tmdb_id_field" %>
+  <%= f.hidden_field :poster_path, id: "poster_path_field" %>
+  <%= f.hidden_field :backdrop_path, id: "backdrop_path_field" %>
+  <%= f.hidden_field :overview, id: "overview_field" %>
+  <%= f.hidden_field :vote_average, id: "vote_average_field" %>
+  <%= f.hidden_field :genres, id: "genres_field" %>
+  <%= f.hidden_field :runtime, id: "runtime_field" %>
+  <%= f.hidden_field :release_date, id: "release_date_field" %>
+  <%= f.hidden_field :original_language, id: "original_language_field" %>
+
+  <!-- Notes -->
+  <div>
+    <%= f.label :notes, "Notes (optional)", class: "block text-sm font-medium text-gray-300 mb-2" %>
+    <%= f.text_area :notes,
+        rows: 3,
+        placeholder: "Any notes about this one...",
+        class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" %>
+  </div>
+
+  <div class="flex items-center gap-3 pt-2">
+    <%= f.submit item.new_record? ? "Add to Watchlist" : "Save Changes",
+        class: "bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-6 py-3 rounded-xl transition-colors cursor-pointer" %>
+    <%= link_to "Cancel", item.new_record? ? watchlist_items_path : watchlist_item_path(item),
+        class: "text-gray-400 hover:text-gray-200 text-sm transition-colors" %>
+  </div>
+<% end %>

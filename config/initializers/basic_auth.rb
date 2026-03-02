@@ -1,0 +1,2 @@
+BASIC_AUTH_USERNAME = ENV.fetch("AUTH_USERNAME", "admin")
+BASIC_AUTH_PASSWORD = ENV.fetch("AUTH_PASSWORD", "watchlist")

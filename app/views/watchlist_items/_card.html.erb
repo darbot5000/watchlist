@@ -1,0 +1,64 @@
+<div id="item_<%= item.id %>" class="group relative flex flex-col rounded-xl overflow-hidden bg-gray-900 border border-gray-800 hover:border-gray-600 transition-all duration-200 hover:shadow-xl hover:shadow-black/50 hover:-translate-y-0.5">
+  <%= link_to watchlist_item_path(item), class: "flex flex-col flex-1" do %>
+    <!-- Poster -->
+    <div class="relative aspect-[2/3] bg-gray-800 overflow-hidden">
+      <% if item.poster_url %>
+        <img src="<%= item.poster_url %>"
+             alt="<%= item.title %>"
+             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+             loading="lazy">
+      <% else %>
+        <div class="w-full h-full flex flex-col items-center justify-center text-gray-600 p-4">
+          <svg class="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+          </svg>
+          <span class="text-xs text-center leading-tight"><%= item.title %></span>
+        </div>
+      <% end %>
+
+      <!-- Overlay badges -->
+      <div class="absolute top-2 left-2 flex flex-col gap-1">
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full <%= item.media_type == 'tv' ? 'bg-purple-600/90' : 'bg-blue-600/90' %> text-white backdrop-blur-sm">
+          <%= item.media_type == 'tv' ? 'TV' : 'Movie' %>
+        </span>
+      </div>
+
+      <% if item.vote_average.present? && item.vote_average > 0 %>
+        <div class="absolute top-2 right-2">
+          <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-500/90 text-black backdrop-blur-sm">
+            ★ <%= item.vote_average.round(1) %>
+          </span>
+        </div>
+      <% end %>
+
+      <!-- Watched overlay -->
+      <% if item.watched? %>
+        <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
+          <div class="bg-green-500 rounded-full p-2">
+            <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Info -->
+    <div class="p-3 flex-1 flex flex-col gap-1">
+      <h3 class="text-sm font-semibold text-white leading-tight line-clamp-2"><%= item.title %></h3>
+      <div class="flex items-center gap-2 flex-wrap mt-auto pt-1">
+        <% if item.release_year %>
+          <span class="text-xs text-gray-500"><%= item.release_year %></span>
+        <% end %>
+        <% if item.streaming_service %>
+          <span class="text-xs text-gray-400 truncate"><%= item.streaming_service %></span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Toggle status button -->
+  <%= button_to toggle_status_watchlist_item_path(item), method: :patch, class: "absolute bottom-0 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium py-2 text-center", data: { turbo_stream: true } do %>
+    <%= item.want_to_watch? ? "Mark as Watched" : "Move to Watch List" %>
+  <% end %>
+</div>

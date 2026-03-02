@@ -1,0 +1,31 @@
+# Ignore bundler config.
+/.bundle
+
+# Ignore all environment files.
+.env
+.env.*
+!.env.example
+
+# Ignore application configuration
+/config/master.key
+/config/credentials/*.key
+
+# Ignore storage (SQLite dbs, uploaded files).
+/storage/*.sqlite3
+/storage/*.sqlite3-*
+
+# Ignore logs and temp files.
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+# Ignore pidfiles, but keep the directory.
+/tmp/pids/*
+!/tmp/pids/.keep
+
+# Ignore node_modules
+/node_modules
+
+# macOS
+.DS_Store
