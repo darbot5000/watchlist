@@ -20,7 +20,6 @@ class WatchlistItemsController < ApplicationController
     @item = WatchlistItem.new
     @item.streaming_url = params[:url] if params[:url].present?
 
-    # Pre-fill from URL if provided
     if params[:url].present?
       parsed = StreamingUrlParser.parse(params[:url])
       @item.streaming_service = parsed[:service]
@@ -29,21 +28,38 @@ class WatchlistItemsController < ApplicationController
   end
 
   def create
-    @item = WatchlistItem.new(item_params)
+    # If a URL is provided and we have Anthropic configured, try full enrichment first
+    if item_params[:streaming_url].present? && AnthropicService.new.configured?
+      result = LinkEnrichmentService.new.enrich(item_params[:streaming_url])
 
-    # Auto-detect service from URL if not set
-    if @item.streaming_url.present? && @item.streaming_service.blank?
-      @item.streaming_service = WatchlistItem.detect_service_from_url(@item.streaming_url)
-    end
+      unless result.success?
+        @item = WatchlistItem.new(item_params)
+        @item.errors.add(:base, result.error)
+        return render :new, status: :unprocessable_entity
+      end
 
-    # Enrich with TMDB data if title is present
-    if @item.title.present? && @item.tmdb_id.blank?
-      tmdb = TmdbService.new
-      if tmdb.configured?
-        enriched = tmdb.enrich_item(@item.title, media_type: @item.media_type.presence)
-        if enriched.any?
-          @item.assign_attributes(enriched.except(:title)) # keep user-entered title
-          @item.media_type = enriched[:media_type] if @item.media_type.blank?
+      @item = WatchlistItem.new(item_params.merge(result.attributes.transform_keys(&:to_s)))
+    else
+      @item = WatchlistItem.new(item_params)
+
+      # Auto-detect service from URL if not set
+      if @item.streaming_url.present? && @item.streaming_service.blank?
+        @item.streaming_service = WatchlistItem.detect_service_from_url(@item.streaming_url)
+      end
+
+      # Enrich with TMDB if we have a title
+      if @item.title.present? && @item.tmdb_id.blank?
+        tmdb = TmdbService.new
+        if tmdb.configured?
+          enriched = tmdb.enrich_item(@item.title, media_type: @item.media_type.presence)
+          if enriched.any?
+            @item.assign_attributes(enriched.except(:title))
+            @item.media_type = enriched[:media_type] if @item.media_type.blank?
+          end
+          if @item.tmdb_id.present?
+            cast = tmdb.fetch_cast(@item.tmdb_id, @item.media_type)
+            @item.cast = cast if cast.present?
+          end
         end
       end
     end
@@ -114,6 +130,34 @@ class WatchlistItemsController < ApplicationController
     }
   end
 
+  # Enrich a URL via AJAX before form submission — gives instant preview
+  def enrich_url
+    url = params[:url].to_s.strip
+    result = LinkEnrichmentService.new.enrich(url)
+
+    if result.success?
+      attrs = result.attributes
+      render json: {
+        success: true,
+        title: attrs[:title],
+        media_type: attrs[:media_type],
+        streaming_service: attrs[:streaming_service],
+        overview: attrs[:overview],
+        poster_path: attrs[:poster_path] ? "https://image.tmdb.org/t/p/w500#{attrs[:poster_path]}" : nil,
+        vote_average: attrs[:vote_average],
+        genres: attrs[:genres],
+        runtime: attrs[:runtime],
+        release_date: attrs[:release_date],
+        cast: attrs[:cast],
+        tmdb_id: attrs[:tmdb_id],
+        backdrop_path: attrs[:backdrop_path],
+        original_language: attrs[:original_language]
+      }
+    else
+      render json: { success: false, error: result.error }, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def set_item
@@ -125,7 +169,7 @@ class WatchlistItemsController < ApplicationController
       :title, :media_type, :status, :streaming_service,
       :streaming_url, :tmdb_id, :overview, :poster_path,
       :backdrop_path, :vote_average, :genres, :runtime,
-      :release_date, :original_language, :notes
+      :release_date, :original_language, :notes, :cast
     )
   end
 end

@@ -7,6 +7,7 @@ Rails.application.routes.draw do
     end
     collection do
       get :search
+      post :enrich_url
     end
   end
 

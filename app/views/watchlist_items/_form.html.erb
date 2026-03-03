@@ -10,40 +10,59 @@
     </div>
   <% end %>
 
-  <!-- TMDB Search (only on new form) -->
+  <!-- Streaming URL with live enrichment -->
+  <div data-controller="url-enrich">
+    <%= f.label :streaming_url, "Paste any link", class: "block text-sm font-medium text-gray-300 mb-2" %>
+    <%= f.url_field :streaming_url,
+        placeholder: "Netflix, YouTube, Wikipedia, news article, IMDB...",
+        class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent",
+        id: "streaming_url_field",
+        data: { action: "input->url-enrich#enrich" } %>
+    <p class="text-xs text-gray-500 mt-1">Paste any link — streaming service, YouTube trailer, Wikipedia page, news article — and we'll figure out the rest.</p>
+
+    <!-- Spinner -->
+    <div id="url_enrich_spinner" class="hidden flex items-center gap-2 mt-3 text-gray-400 text-sm">
+      <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+      </svg>
+      Looking it up...
+    </div>
+
+    <!-- Error -->
+    <div id="url_enrich_error" class="hidden mt-3 text-red-400 text-sm bg-red-900/30 border border-red-700/50 rounded-lg px-3 py-2"></div>
+
+    <!-- Preview -->
+    <div id="url_enrich_preview" class="hidden mt-3 bg-gray-800/60 border border-gray-700 rounded-xl p-4"></div>
+  </div>
+
+  <div class="border-t border-gray-800"></div>
+
+  <!-- TMDB Search (manual fallback) -->
   <% if item.new_record? %>
     <div data-controller="tmdb-search">
-      <label class="block text-sm font-medium text-gray-300 mb-2">Search TMDB</label>
+      <label class="block text-sm font-medium text-gray-300 mb-2">
+        Or search by title
+        <span class="text-gray-500 font-normal">(manual lookup)</span>
+      </label>
       <div class="relative">
         <input type="text"
                id="tmdb_search"
                data-action="input->tmdb-search#search"
-               placeholder="Search for a movie or TV show..."
+               placeholder="Search TMDB..."
                class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
         <div id="tmdb_results" class="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl hidden overflow-hidden"></div>
       </div>
-      <p class="text-xs text-gray-500 mt-1">Search to auto-fill details, or fill in manually below.</p>
     </div>
-
-    <div class="border-t border-gray-800"></div>
   <% end %>
 
-  <!-- Streaming URL -->
-  <div>
-    <%= f.label :streaming_url, "Streaming URL", class: "block text-sm font-medium text-gray-300 mb-2" %>
-    <%= f.url_field :streaming_url,
-        placeholder: "https://www.netflix.com/title/...",
-        class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent",
-        id: "streaming_url_field",
-        data: { controller: "url-detect", action: "change->url-detect#detect paste->url-detect#detect" } %>
-    <p class="text-xs text-gray-500 mt-1">Paste a link and the service will be auto-detected.</p>
-  </div>
+  <div class="border-t border-gray-800"></div>
 
   <!-- Title -->
   <div>
     <%= f.label :title, "Title", class: "block text-sm font-medium text-gray-300 mb-2" %>
     <%= f.text_field :title,
-        placeholder: "The Dark Knight",
+        placeholder: "Auto-filled from link, or enter manually",
         required: true,
         id: "title_field",
         class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" %>
@@ -74,20 +93,9 @@
     <%= f.label :streaming_service, "Streaming Service", class: "block text-sm font-medium text-gray-300 mb-2" %>
     <%= f.text_field :streaming_service,
         id: "streaming_service_field",
-        placeholder: "Netflix, Max, Disney+, ...",
+        placeholder: "Auto-detected, or enter manually",
         class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" %>
   </div>
-
-  <!-- Hidden TMDB fields -->
-  <%= f.hidden_field :tmdb_id, id: "tmdb_id_field" %>
-  <%= f.hidden_field :poster_path, id: "poster_path_field" %>
-  <%= f.hidden_field :backdrop_path, id: "backdrop_path_field" %>
-  <%= f.hidden_field :overview, id: "overview_field" %>
-  <%= f.hidden_field :vote_average, id: "vote_average_field" %>
-  <%= f.hidden_field :genres, id: "genres_field" %>
-  <%= f.hidden_field :runtime, id: "runtime_field" %>
-  <%= f.hidden_field :release_date, id: "release_date_field" %>
-  <%= f.hidden_field :original_language, id: "original_language_field" %>
 
   <!-- Notes -->
   <div>
@@ -97,6 +105,18 @@
         placeholder: "Any notes about this one...",
         class: "w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" %>
   </div>
+
+  <!-- Hidden fields populated by enrichment -->
+  <%= f.hidden_field :tmdb_id, id: "tmdb_id_field" %>
+  <%= f.hidden_field :poster_path, id: "poster_path_field" %>
+  <%= f.hidden_field :backdrop_path, id: "backdrop_path_field" %>
+  <%= f.hidden_field :overview, id: "overview_field" %>
+  <%= f.hidden_field :vote_average, id: "vote_average_field" %>
+  <%= f.hidden_field :genres, id: "genres_field" %>
+  <%= f.hidden_field :runtime, id: "runtime_field" %>
+  <%= f.hidden_field :release_date, id: "release_date_field" %>
+  <%= f.hidden_field :original_language, id: "original_language_field" %>
+  <%= f.hidden_field :cast, id: "cast_field" %>
 
   <div class="flex items-center gap-3 pt-2">
     <%= f.submit item.new_record? ? "Add to Watchlist" : "Save Changes",

@@ -12,7 +12,7 @@
 # from scratch. The latter is a flawed and unsustainable approach (the more migrations
 # you'll amass, the slower it'll run and the more likely it is to break).
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_02_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_03_000001) do
   create_table "watchlist_items", force: :cascade do |t|
     t.string "title", null: false
     t.string "media_type", null: false, default: "movie"
@@ -29,6 +29,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_02_000001) do
     t.string "release_date"
     t.string "original_language"
     t.text "notes"
+    t.text "cast"
     t.datetime "watched_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

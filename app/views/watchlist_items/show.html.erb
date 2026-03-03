@@ -96,6 +96,18 @@
       </div>
     <% end %>
 
+    <!-- Cast -->
+    <% if @item.cast_list.any? %>
+      <div class="mt-6">
+        <p class="text-sm font-medium text-gray-400 mb-2">Starring</p>
+        <div class="flex flex-wrap gap-2">
+          <% @item.cast_list.each do |actor| %>
+            <span class="text-sm px-3 py-1 bg-gray-800 text-gray-300 rounded-full border border-gray-700"><%= actor %></span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <!-- Notes -->
     <% if @item.notes.present? %>
       <div class="mt-4 p-4 bg-gray-800/50 rounded-xl border border-gray-700">

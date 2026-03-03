@@ -33,6 +33,18 @@ class TmdbService
     parse_details(response.parsed_response, media_type)
   end
 
+  # Fetch top-billed cast for a TMDB item
+  def fetch_cast(tmdb_id, media_type, limit: 8)
+    return nil unless configured?
+
+    endpoint = media_type == "tv" ? "tv" : "movie"
+    response = get("/#{endpoint}/#{tmdb_id}/credits")
+    return nil unless response.success?
+
+    cast = response.parsed_response["cast"] || []
+    cast.first(limit).map { |c| c["name"] }.join(", ")
+  end
+
   # Find best match and return enriched attributes
   def enrich_item(title, media_type: nil)
     return {} unless configured?

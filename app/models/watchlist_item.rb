@@ -49,6 +49,10 @@ class WatchlistItem < ApplicationRecord
     genres&.split(",")&.map(&:strip) || []
   end
 
+  def cast_list
+    cast&.split(",")&.map(&:strip) || []
+  end
+
   def formatted_runtime
     return nil unless runtime.present? && runtime > 0
     hours = runtime / 60
