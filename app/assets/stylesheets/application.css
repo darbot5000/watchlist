@@ -1,0 +1,8 @@
+/*
+ * This is a manifest file that'll be compiled into application.css.
+ *= require_self
+ */
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
