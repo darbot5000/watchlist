@@ -7,20 +7,22 @@
   </div>
 
   <!-- Unified search input -->
-  <div class="relative mb-4">
+  <div class="flex gap-2 mb-4">
     <input
       type="text"
       data-watchlist-search-target="input"
       data-action="input->watchlist-search#onInput keydown->watchlist-search#onKeydown"
       placeholder="Search by title, or paste a link…"
       autofocus
-      class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 pr-12 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base"
+      class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base"
     >
-    <div class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-      </svg>
-    </div>
+    <button
+      type="button"
+      data-action="click->watchlist-search#onSearch"
+      class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-3 rounded-xl transition-colors flex-shrink-0"
+    >
+      Search
+    </button>
   </div>
 
   <!-- Spinner -->
@@ -29,7 +31,7 @@
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
     </svg>
-    <span data-label>Loading…</span>
+    <span>Loading…</span>
   </div>
 
   <!-- Error -->

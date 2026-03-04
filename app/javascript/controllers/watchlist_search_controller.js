@@ -1,18 +1,18 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["input", "results", "spinner", "error", "status"]
+  static targets = ["input", "results", "spinner", "error"]
 
   connect() {
     this.debounceTimer = null
     this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    console.log("[WatchlistSearch] controller connected")
   }
 
   onInput(event) {
     const val = event.target.value.trim()
     clearTimeout(this.debounceTimer)
     this.hideError()
-    this.clearStatus()
 
     if (!val) {
       this.clearResults()
@@ -20,7 +20,6 @@ export default class extends Controller {
     }
 
     if (this.isUrl(val)) {
-      // Debounce a bit longer for URL (user might still be pasting)
       this.debounceTimer = setTimeout(() => this.enrichUrl(val), 700)
     } else if (val.length >= 2) {
       this.debounceTimer = setTimeout(() => this.searchTmdb(val), 350)
@@ -32,14 +31,23 @@ export default class extends Controller {
   onKeydown(event) {
     if (event.key !== "Enter") return
     event.preventDefault()
-    const val = event.target.value.trim()
-    if (!val) return
     clearTimeout(this.debounceTimer)
+    this.submit()
+  }
+
+  onSearch(event) {
+    event.preventDefault()
+    clearTimeout(this.debounceTimer)
+    this.submit()
+  }
+
+  submit() {
+    const val = this.inputTarget.value.trim()
+    if (!val) return
     this.hideError()
-    this.clearStatus()
     if (this.isUrl(val)) {
       this.enrichUrl(val)
-    } else if (val.length >= 2) {
+    } else if (val.length >= 1) {
       this.searchTmdb(val)
     }
   }
@@ -47,6 +55,7 @@ export default class extends Controller {
   // ── URL enrichment ──────────────────────────────────────────────────────────
 
   async enrichUrl(url) {
+    console.log("[WatchlistSearch] enriching URL:", url)
     this.showSpinner("Analyzing link…")
     this.clearResults()
 
@@ -63,6 +72,7 @@ export default class extends Controller {
 
       const data = await response.json()
       this.hideSpinner()
+      console.log("[WatchlistSearch] enrich response:", data)
 
       if (data.success) {
         this.renderResults([{ ...data, source: "url", streaming_url: url }])
@@ -71,6 +81,7 @@ export default class extends Controller {
       }
     } catch (e) {
       this.hideSpinner()
+      console.error("[WatchlistSearch] enrichUrl error:", e)
       this.showError("Could not reach the server. Please try again.")
     }
   }
@@ -78,6 +89,7 @@ export default class extends Controller {
   // ── TMDB text search ────────────────────────────────────────────────────────
 
   async searchTmdb(query) {
+    console.log("[WatchlistSearch] searching TMDB:", query)
     this.showSpinner("Searching…")
     this.clearResults()
 
@@ -87,6 +99,7 @@ export default class extends Controller {
       })
       const results = await response.json()
       this.hideSpinner()
+      console.log("[WatchlistSearch] search results:", results.length)
 
       if (results.length === 0) {
         this.showError("No results found. Try a different title.")
@@ -95,6 +108,7 @@ export default class extends Controller {
       }
     } catch (e) {
       this.hideSpinner()
+      console.error("[WatchlistSearch] searchTmdb error:", e)
       this.showError("Search failed. Please try again.")
     }
   }
@@ -106,7 +120,6 @@ export default class extends Controller {
 
     container.innerHTML = results.map((r, i) => {
       const title = this.esc(r.title || r.name || "")
-      const type = r.media_type === "tv" ? "TV Show" : "Movie"
       const typeBadge = r.media_type === "tv"
         ? `<span class="text-xs px-2 py-0.5 rounded-full bg-purple-600/30 text-purple-400 border border-purple-600/30">TV Show</span>`
         : `<span class="text-xs px-2 py-0.5 rounded-full bg-blue-600/30 text-blue-400 border border-blue-600/30">Movie</span>`
@@ -127,27 +140,27 @@ export default class extends Controller {
         ? `<img src="${poster}" alt="" class="w-14 h-20 object-cover rounded-lg flex-shrink-0 shadow">`
         : `<div class="w-14 h-20 bg-gray-700 rounded-lg flex-shrink-0 flex items-center justify-center text-gray-500 text-xl">🎬</div>`
 
-      // Encode data payload for the add button
-      const payload = this.esc(JSON.stringify({
+      const payloadObj = {
         tmdb_id: r.tmdb_id || r.id,
         media_type: r.media_type || "movie",
         title: r.title || r.name,
-        source: r.source,
-        // Include full enriched data if from URL (avoids second TMDB lookup)
-        ...(r.source === "url" ? {
-          overview: r.overview,
-          poster_path: r.poster_path_raw || (r.poster_path?.replace("https://image.tmdb.org/t/p/w500", "") || ""),
-          backdrop_path: r.backdrop_path,
-          vote_average: r.vote_average,
-          genres: r.genres,
-          runtime: r.runtime,
-          release_date: r.release_date,
-          original_language: r.original_language,
-          cast: r.cast,
-          streaming_service: r.streaming_service,
-          streaming_url: r.streaming_url
-        } : {})
-      }))
+        source: r.source
+      }
+      if (r.source === "url") {
+        payloadObj.overview = r.overview
+        payloadObj.poster_path = r.poster_path_raw || (r.poster_path ? r.poster_path.replace("https://image.tmdb.org/t/p/w500", "") : "")
+        payloadObj.backdrop_path = r.backdrop_path
+        payloadObj.vote_average = r.vote_average
+        payloadObj.genres = r.genres
+        payloadObj.runtime = r.runtime
+        payloadObj.release_date = r.release_date
+        payloadObj.original_language = r.original_language
+        payloadObj.cast = r.cast
+        payloadObj.streaming_service = r.streaming_service
+        payloadObj.streaming_url = r.streaming_url
+      }
+
+      const payload = this.esc(JSON.stringify(payloadObj))
 
       return `
         <div class="flex items-center gap-4 p-4 bg-gray-800/60 border border-gray-700 rounded-xl" id="result-${i}">
@@ -183,6 +196,7 @@ export default class extends Controller {
     const idx = btn.dataset.resultIndex
     const card = document.getElementById(`result-${idx}`)
 
+    console.log("[WatchlistSearch] adding item:", payload.title)
     btn.disabled = true
     btn.textContent = "Adding…"
 
@@ -198,9 +212,9 @@ export default class extends Controller {
       })
 
       const data = await response.json()
+      console.log("[WatchlistSearch] quick_add response:", data)
 
       if (data.success) {
-        // Replace the card with a success state
         if (card) {
           card.innerHTML = `
             <div class="flex items-center gap-3 text-green-400 py-2">
@@ -220,6 +234,7 @@ export default class extends Controller {
     } catch (e) {
       btn.disabled = false
       btn.textContent = "+ Add"
+      console.error("[WatchlistSearch] addItem error:", e)
       this.showError("Could not reach the server. Please try again.")
     }
   }
@@ -234,8 +249,8 @@ export default class extends Controller {
     this.resultsTarget.innerHTML = ""
   }
 
-  showSpinner(msg = "Loading…") {
-    this.spinnerTarget.querySelector("[data-label]").textContent = msg
+  showSpinner(msg) {
+    this.spinnerTarget.querySelector("span").textContent = msg || "Loading…"
     this.spinnerTarget.classList.remove("hidden")
   }
 
@@ -250,13 +265,6 @@ export default class extends Controller {
 
   hideError() {
     this.errorTarget.classList.add("hidden")
-  }
-
-  clearStatus() {
-    if (this.hasStatusTarget) {
-      this.statusTarget.textContent = ""
-      this.statusTarget.classList.add("hidden")
-    }
   }
 
   esc(str) {
