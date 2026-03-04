@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     collection do
       get :search
       post :enrich_url
+      post :quick_add
     end
   end
 

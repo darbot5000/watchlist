@@ -130,6 +130,61 @@ class WatchlistItemsController < ApplicationController
     }
   end
 
+  # Quick-add from search results — accepts either a tmdb_id (fetches full details)
+  # or a full pre-enriched payload (from URL enrichment).
+  def quick_add
+    payload = params.permit(
+      :tmdb_id, :media_type, :title, :source,
+      :overview, :poster_path, :backdrop_path, :vote_average,
+      :genres, :runtime, :release_date, :original_language,
+      :cast, :streaming_service, :streaming_url
+    ).to_h.symbolize_keys
+
+    tmdb = TmdbService.new
+
+    if payload[:tmdb_id].present?
+      media_type = payload[:media_type].presence || "movie"
+
+      # Fetch full details from TMDB (poster, genres, cast, etc.)
+      attrs = tmdb.configured? ? (tmdb.details(payload[:tmdb_id], media_type) || {}) : {}
+
+      if attrs.empty?
+        # Fallback to whatever we were given
+        attrs = payload.slice(:title, :media_type, :overview, :poster_path,
+                              :backdrop_path, :vote_average, :genres, :runtime,
+                              :release_date, :original_language)
+        attrs[:tmdb_id] = payload[:tmdb_id]
+      end
+
+      # Fetch cast separately
+      if tmdb.configured? && attrs[:tmdb_id].present?
+        cast = tmdb.fetch_cast(attrs[:tmdb_id], attrs[:media_type] || media_type)
+        attrs[:cast] = cast if cast.present?
+      end
+
+      # Carry over any URL/service info from the payload
+      attrs[:streaming_url] = payload[:streaming_url] if payload[:streaming_url].present?
+      attrs[:streaming_service] = payload[:streaming_service] if payload[:streaming_service].present?
+      # If we were given pre-enriched cast/service and TMDB didn't override, keep it
+      attrs[:cast] ||= payload[:cast]
+      attrs[:streaming_service] ||= payload[:streaming_service]
+    else
+      # Full payload provided (e.g. from URL enrichment) — use as-is
+      attrs = payload.except(:source)
+    end
+
+    attrs[:media_type] ||= "movie"
+    attrs[:status] = "want_to_watch"
+
+    @item = WatchlistItem.new(attrs)
+
+    if @item.save
+      render json: { success: true, id: @item.id, title: @item.title, url: watchlist_item_path(@item) }
+    else
+      render json: { success: false, errors: @item.errors.full_messages }, status: :unprocessable_entity
+    end
+  end
+
   # Enrich a URL via AJAX before form submission — gives instant preview
   def enrich_url
     url = params[:url].to_s.strip
