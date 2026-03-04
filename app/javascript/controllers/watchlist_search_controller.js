@@ -29,6 +29,21 @@ export default class extends Controller {
     }
   }
 
+  onKeydown(event) {
+    if (event.key !== "Enter") return
+    event.preventDefault()
+    const val = event.target.value.trim()
+    if (!val) return
+    clearTimeout(this.debounceTimer)
+    this.hideError()
+    this.clearStatus()
+    if (this.isUrl(val)) {
+      this.enrichUrl(val)
+    } else if (val.length >= 2) {
+      this.searchTmdb(val)
+    }
+  }
+
   // ── URL enrichment ──────────────────────────────────────────────────────────
 
   async enrichUrl(url) {
